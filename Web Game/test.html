@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <script>
+        console.log('Test page loaded');
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    
+    <script>
+        console.log('Phaser loaded:', typeof Phaser);
+        console.log('Phaser.Game:', typeof Phaser.Game);
+    </script>
+    
+    <script src="src/constants/BrandingConstants.js"></script>
+    <script>
+        console.log('BrandingConstants loaded');
+        console.log('SCREEN_WIDTH:', BrandingConstants.SCREEN_WIDTH);
+    </script>
+    
+    <script>
+        console.log('Creating test game...');
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            width: 1080,
+            height: 1920,
+            scene: {
+                create: function() {
+                    console.log('Scene created!');
+                    this.add.text(100, 100, 'Test Game', { fontSize: '32px', fill: '#000' });
+                }
+            }
+        };
+        
+        console.log('Config:', config);
+        const game = new Phaser.Game(config);
+        console.log('Game created');
+    </script>
+</body>
+</html>

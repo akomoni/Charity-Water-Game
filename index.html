@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jerry's Water Network</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; overflow: hidden; background: linear-gradient(180deg, #7DD3C0 0%, #4A90E2 50%, #2596BE 100%); height: 100vh; }
+        canvas { display: block; margin: auto; }
+    </style>
+</head>
+<body>
+    <!-- Audio elements for free sounds -->
+    <audio id="waterFlowSound" loop style="display:none;">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+    <audio id="completeSound" style="display:none;">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+    <script>
+        const COLORS = {
+            BLUE: 0x2596BE,
+            YELLOW: 0xFFC908,
+            LIGHT_BLUE: 0xE8F4F8,
+            WHITE: 0xFFFFFF,
+            DARK_TEXT: 0x333333,
+        };
+
+        // Local logo file (added to workspace)
+        const LOGO_URL = '/charity-water-logo-9121D887A9-seeklogo.com.png';
+        
+        // Background music - two separate tracks
+        let menuMusic = null;
+        let gameMusic = null;
+        
+        function initMenuMusic() {
+            if (!menuMusic) {
+                menuMusic = new Audio('/mi_music-gaming-track-144461.mp3');
+                menuMusic.loop = true;
+                menuMusic.volume = 0.3;
+            }
+        }
+        
+        function initGameMusic() {
+            if (!gameMusic) {
+                gameMusic = new Audio('/viacheslavstarostin-game-gaming-video-game-music-471936.mp3');
+                gameMusic.loop = true;
+                gameMusic.volume = 0.3;
+            }
+        }
+        
+        function playMenuMusic() {
+            initMenuMusic();
+            if (gameMusic && !gameMusic.paused) {
+                gameMusic.pause();
+            }
+            if (menuMusic && menuMusic.paused) {
+                menuMusic.play().catch(err => console.log('Menu audio play failed:', err));
+            }
+        }
+        
+        function playGameMusic() {
+            initGameMusic();
+            if (menuMusic && !menuMusic.paused) {
+                menuMusic.pause();
+            }
+            if (gameMusic && gameMusic.paused) {
+                gameMusic.play().catch(err => console.log('Game audio play failed:', err));
+            }
+        }
+        
+        // Web Audio API for sound effects
+        let audioContext = null;
+
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playWaterDropSound() {
+            initAudio();
+            const ctx = audioContext;
+            const now = ctx.currentTime;
+            
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            
+            // Pitch sweep down (water drop falling)
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+
+        function playCompletionChime() {
+            initAudio();
+            const ctx = audioContext;
+            const now = ctx.currentTime;
+            
+            const notes = [329.63, 392, 493.88]; // E4, G4, B4
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+                
+                gain.gain.setValueAtTime(0.2, now + idx * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.3);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start(now + idx * 0.1);
+                osc.stop(now + idx * 0.1 + 0.3);
+            });
+        }
+
+        function playGameStartSound() {
+            initAudio();
+            const ctx = audioContext;
+            const now = ctx.currentTime;
+            
+            // Ascending beep sequence
+            const beeps = [440, 494, 554]; // A4, B4, C#5
+            beeps.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                
+                gain.gain.setValueAtTime(0.15, now + idx * 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.05 + 0.1);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start(now + idx * 0.05);
+                osc.stop(now + idx * 0.05 + 0.1);
+            });
+        }
+
+        function playPlopSound() {
+            initAudio();
+            const ctx = audioContext;
+            const now = ctx.currentTime;
+            
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+            
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+
+        // Menu Scene
+        class MenuScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'Menu' });
+            }
+
+            create() {
+                this.add.rectangle(540, 960, 1080, 1920, COLORS.LIGHT_BLUE);
+
+                const scene = this;
+
+                // Start menu music immediately
+                playMenuMusic();
+
+                // Load second logo at top (100% bigger)
+                if (!this.textures.exists('secondLogo')) {
+                    const img2 = new Image();
+                    img2.crossOrigin = 'anonymous';
+                    img2.onload = function() {
+                        scene.textures.addImage('secondLogo', img2);
+                        scene.add.image(540, 500, 'secondLogo').setScale(1.8).setOrigin(0.5);
+                    };
+                    img2.src = '/11eac3e7-5344-42a9-ad0d-33d20369f480.png';
+                } else {
+                    this.add.image(540, 500, 'secondLogo').setScale(1.8).setOrigin(0.5);
+                }
+
+                // Load the exact charity: water PNG at bottom
+                if (!this.textures.exists('charityLogo')) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = function() {
+                        scene.textures.addImage('charityLogo', img);
+                        scene.add.image(540, 1600, 'charityLogo').setOrigin(0.5).setScale(2);
+                    };
+                    img.src = LOGO_URL;
+                } else {
+                    this.add.image(540, 1600, 'charityLogo').setOrigin(0.5).setScale(2);
+                }
+
+                const playBtn = this.add.rectangle(540, 950, 560, 182, COLORS.YELLOW);
+                playBtn.setInteractive({ useHandCursor: true });
+                playBtn.setStrokeStyle(6, '#FFFFFF');
+
+                const playText = this.add.text(540, 950, 'PLAY GAME', {
+                    fontSize: '70px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0.5);
+
+                playBtn.on('pointerover', () => {
+                    playBtn.setFillStyle(0xFFD700);
+                    playText.setFontSize(77);
+                });
+
+                playBtn.on('pointerout', () => {
+                    playBtn.setFillStyle(COLORS.YELLOW);
+                    playText.setFontSize(70);
+                });
+
+                playBtn.on('pointerdown', () => {
+                    // Start audio on user gesture and play a short start sound
+                    initAudio();
+                    playMenuMusic();
+                    playGameStartSound();
+
+                    scene.scene.stop('Menu');
+                    scene.scene.start('LevelSelect');
+                });
+
+                const infoBtn = this.add.rectangle(540, 1150, 400, 130, COLORS.BLUE);
+                infoBtn.setInteractive({ useHandCursor: true });
+                infoBtn.setStrokeStyle(4, '#FFFFFF');
+
+                const infoText = this.add.text(540, 1150, 'HOW TO PLAY', {
+                    fontSize: '48px',
+                    fontStyle: 'bold',
+                    fill: '#FFFFFF'
+                }).setOrigin(0.5);
+
+                infoBtn.on('pointerover', () => {
+                    infoBtn.setFillStyle(0x1B7FA5);
+                    infoText.setFontSize(53);
+                });
+
+                infoBtn.on('pointerout', () => {
+                    infoBtn.setFillStyle(COLORS.BLUE);
+                    infoText.setFontSize(48);
+                });
+
+                infoBtn.on('pointerdown', () => {
+                    alert('HOW TO PLAY:\n\n1. Click tiles to place pipes\n2. Connect the water source (💧) to villages (🏘️)\n3. Click START to flow water\n4. Deliver 100 liters before time runs out!');
+                });
+            }
+        }
+
+        // Level Select Scene
+        class LevelSelectScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'LevelSelect' });
+            }
+
+            create() {
+                this.add.rectangle(540, 960, 1080, 1920, COLORS.LIGHT_BLUE);
+                
+                // Play menu music when entering level select
+                playMenuMusic();
+                
+                // Top-right logo: use loaded PNG if available, otherwise draw fallback
+                if (this.textures.exists('charityLogo')) {
+                    this.add.image(540, 170, 'charityLogo').setScale(0.845).setOrigin(0.5);
+                } else {
+                    const logoSize = 90;
+                    const logoX = 540 - logoSize / 2;
+                    const logoY = 60;
+                    const selectLogoGraphics = this.make.graphics({ x: 0, y: 0, add: true }, false);
+                    selectLogoGraphics.fillStyle(COLORS.YELLOW, 1);
+                    selectLogoGraphics.fillRect(logoX, logoY, logoSize, logoSize);
+                    selectLogoGraphics.lineStyle(6, 0xFFFFFF, 1);
+                    selectLogoGraphics.lineBetween(logoX + 20, logoY + 35, logoX + 70, logoY + 35);
+                    selectLogoGraphics.lineBetween(logoX + 20, logoY + 55, logoX + 70, logoY + 55);
+                    selectLogoGraphics.lineBetween(logoX + 35, logoY + 20, logoX + 35, logoY + 70);
+                    selectLogoGraphics.lineBetween(logoX + 55, logoY + 20, logoX + 55, logoY + 70);
+                }
+                
+                // Create 10 level buttons (two columns)
+                for (let i = 1; i <= 10; i++) {
+                    const col = i <= 5 ? 0 : 1;
+                    const indexInCol = (i - 1) % 5;
+                    const x = col === 0 ? 300 : 780;
+                    const y = 360 + indexInCol * 150;
+                    const fill = (i % 2 === 1) ? COLORS.YELLOW : COLORS.BLUE;
+
+                    const btn = this.add.rectangle(x, y, 420, 120, fill);
+                    btn.setInteractive({ useHandCursor: true });
+                    btn.setStrokeStyle(4, (fill === COLORS.YELLOW) ? COLORS.BLUE : COLORS.YELLOW);
+
+                    const levelText = this.add.text(x, y - 10, `LEVEL ${i}`, {
+                        fontSize: '36px',
+                        fontStyle: 'bold',
+                        fill: (fill === COLORS.YELLOW) ? COLORS.DARK_TEXT : '#FFFFFF'
+                    }).setOrigin(0.5);
+
+                    // Best score display
+                    const bestKey = `gfwc_score_level_${i}`;
+                    const best = localStorage.getItem(bestKey);
+                    const bestText = best ? `${best} pts` : '—';
+                    this.add.text(x, y + 30, bestText, { fontSize: '26px', fontStyle: 'bold', fill: '#222222' }).setOrigin(0.5);
+
+                    // Hover effects
+                    btn.on('pointerover', () => {
+                        if (fill === COLORS.YELLOW) {
+                            btn.setFillStyle(0xFFD700);
+                        } else {
+                            btn.setFillStyle(0x1B7FA5);
+                        }
+                        levelText.setFontSize(40);
+                    });
+
+                    btn.on('pointerout', () => {
+                        btn.setFillStyle(fill);
+                        levelText.setFontSize(36);
+                    });
+
+                    btn.on('pointerdown', () => {
+                        playGameStartSound();
+                        this.scene.stop('LevelSelect');
+                        this.scene.start('Game', { level: i });
+                    });
+                }
+
+                const backBtn = this.add.rectangle(100, 100, 80, 80, COLORS.BLUE);
+                backBtn.setInteractive({ useHandCursor: true });
+                this.add.text(100, 100, '←', { fontSize: '50px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+                
+                backBtn.on('pointerdown', () => {
+                    this.scene.stop('LevelSelect');
+                    this.scene.start('Menu');
+                });
+
+                // Calculate total points from all levels
+                let totalPoints = 0;
+                for (let i = 1; i <= 10; i++) {
+                    const bestKey = `gfwc_score_level_${i}`;
+                    const best = localStorage.getItem(bestKey);
+                    if (best) {
+                        totalPoints += parseInt(best, 10);
+                    }
+                }
+
+                // Medal thresholds
+                const BRONZE_THRESHOLD = 10000;
+                const SILVER_THRESHOLD = 15000;
+                const GOLD_THRESHOLD = 20000;
+
+                // Display total points counter
+                this.add.text(540, 1200, `TOTAL POINTS: ${totalPoints}`, {
+                    fontSize: '64px',
+                    fontStyle: 'bold',
+                    fill: COLORS.BLUE
+                }).setOrigin(0.5);
+
+                // Determine medal level and show progress to next tier
+                let medalText = '';
+                let medalColor = 0x999999;
+                let progressText = '';
+                
+                if (totalPoints >= GOLD_THRESHOLD) {
+                    medalText = '🏆 GOLD';
+                    medalColor = 0xFFD700;
+                    progressText = 'ULTIMATE CHAMPION!';
+                } else if (totalPoints >= SILVER_THRESHOLD) {
+                    medalText = '🥈 SILVER';
+                    medalColor = 0xC0C0C0;
+                    const pointsToGold = GOLD_THRESHOLD - totalPoints;
+                    progressText = `${pointsToGold} pts to GOLD 🏆`;
+                } else if (totalPoints >= BRONZE_THRESHOLD) {
+                    medalText = '🥉 BRONZE';
+                    medalColor = 0xCD7F32;
+                    const pointsToSilver = SILVER_THRESHOLD - totalPoints;
+                    progressText = `${pointsToSilver} pts to SILVER 🥈`;
+                } else {
+                    medalText = `${BRONZE_THRESHOLD - totalPoints} pts to BRONZE 🥉`;
+                    medalColor = COLORS.DARK_TEXT;
+                    progressText = 'Keep playing!';
+                }
+
+                this.add.text(540, 1310, medalText, {
+                    fontSize: '84px',
+                    fontStyle: 'bold',
+                    fill: medalColor
+                }).setOrigin(0.5);
+                
+                this.add.text(540, 1420, progressText, {
+                    fontSize: '40px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0.5);
+
+                // Add charity: water donation link button
+                const donateBtn = this.add.rectangle(540, 1550, 900, 150, COLORS.YELLOW);
+                donateBtn.setInteractive({ useHandCursor: true });
+                donateBtn.setStrokeStyle(9, COLORS.BLUE);
+                donateBtn.setDepth(100);
+
+                const donateText = this.add.text(540, 1550, 'Make a real change today!', {
+                    fontSize: '48px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0.5);
+                donateText.setDepth(101);
+
+                donateBtn.on('pointerover', () => {
+                    donateBtn.setFillStyle(0xFFD700);
+                    donateText.setFontSize(51);
+                });
+
+                donateBtn.on('pointerout', () => {
+                    donateBtn.setFillStyle(COLORS.YELLOW);
+                    donateText.setFontSize(48);
+                });
+
+                donateBtn.on('pointerdown', () => {
+                    window.open('https://www.charitywater.org/', '_blank');
+                });
+
+                // Check if player reached a new milestone and show confetti
+                const previousTotal = parseInt(localStorage.getItem('gfwc_previous_total') || '0', 10);
+                let newMilestone = false;
+                let medalType = '';
+
+                if (totalPoints >= GOLD_THRESHOLD && previousTotal < GOLD_THRESHOLD) {
+                    newMilestone = true;
+                    medalType = 'gold';
+                    playCompletionChime();
+                } else if (totalPoints >= SILVER_THRESHOLD && previousTotal < SILVER_THRESHOLD) {
+                    newMilestone = true;
+                    medalType = 'silver';
+                    playCompletionChime();
+                } else if (totalPoints >= BRONZE_THRESHOLD && previousTotal < BRONZE_THRESHOLD) {
+                    newMilestone = true;
+                    medalType = 'bronze';
+                    playCompletionChime();
+                }
+
+                if (newMilestone) {
+                    this.createConfetti(medalType);
+                }
+
+                localStorage.setItem('gfwc_previous_total', totalPoints.toString());
+            }
+
+            createConfetti(medalType) {
+                // Color-coordinated confetti based on medal earned
+                let colors = [];
+                if (medalType === 'gold') {
+                    colors = [0xFFD700, 0xFFC700, 0xFFE700, 0xFFB700, 0xFFE44D, 0xFFDF00]; // Gold shades
+                } else if (medalType === 'silver') {
+                    colors = [0xC0C0C0, 0xD3D3D3, 0xB0B0B0, 0xE0E0E0, 0xA8A8A8, 0xCCCCCC]; // Silver shades
+                } else if (medalType === 'bronze') {
+                    colors = [0xCD7F32, 0xB87333, 0xE3944A, 0xA76F3F, 0xD4895B, 0xC77F42]; // Bronze shades
+                } else {
+                    colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF]; // Rainbow fallback
+                }
+                
+                const waveCount = 3;
+                const particlesPerWave = 100;
+                
+                for (let wave = 0; wave < waveCount; wave++) {
+                    this.time.delayedCall(wave * 200, () => {
+                        for (let i = 0; i < particlesPerWave; i++) {
+                            const x = Math.random() * 1080;
+                            const y = -20;
+                            const color = colors[Math.floor(Math.random() * colors.length)];
+                            const size = 5 + Math.random() * 15;
+                            const rect = this.add.rectangle(x, y, size, size, color);
+                            rect.setDepth(1000);
+                            rect.setRotation(Math.random() * Math.PI);
+
+                            const duration = 2500 + Math.random() * 1500;
+                            this.tweens.add({
+                                targets: rect,
+                                y: 1920,
+                                rotation: Math.random() * Math.PI * 6,
+                                alpha: 0,
+                                duration: duration,
+                                ease: 'Linear',
+                                onComplete: () => rect.destroy()
+                            });
+                        }
+                    });
+                }
+            }
+        }
+
+        // Game Scene
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'Game' });
+            }
+
+            init(data) {
+                this.level = data.level || 1;
+            }
+
+            create() {
+                // Switch to game music when entering game
+                playGameMusic();
+                
+                const scene = this;
+                const TILE_SIZE = 95;
+                const COLS = 10;
+
+                // Level configuration helper - MAKE EACH LEVEL UNIQUE!!!
+                function getLevelConfig(level) {
+                    const cfg = {};
+                    cfg.cols = COLS;
+                    
+                    // Scale rows differently per level
+                    if (level === 1) {
+                        cfg.rows = 9;
+                    } else if (level === 2) {
+                        cfg.rows = 10;
+                    } else if (level === 3) {
+                        cfg.rows = 11;
+                    } else if (level === 4) {
+                        cfg.rows = 12;
+                    } else if (level === 5) {
+                        cfg.rows = 10;
+                    } else if (level === 6) {
+                        cfg.rows = 13;
+                    } else if (level === 7) {
+                        cfg.rows = 11;
+                    } else if (level === 8) {
+                        cfg.rows = 14;
+                    } else if (level === 9) {
+                        cfg.rows = 12;
+                    } else {
+                        cfg.rows = 15;
+                    }
+                    cfg.rows = Math.min(16, cfg.rows);
+                    
+                    // Source position varies by level
+                    if (level <= 3) {
+                        cfg.sourceCol = 5;
+                    } else if (level <= 6) {
+                        cfg.sourceCol = 4;
+                    } else if (level <= 8) {
+                        cfg.sourceCol = 6;
+                    } else {
+                        cfg.sourceCol = 5;
+                    }
+                    cfg.sourceRow = 0;
+                    
+                    // Different villages for each level - spread across grid, not just at bottom
+                    cfg.villages = [];
+                    if (level === 1) {
+                        cfg.villages = [{col: 2, row: cfg.rows - 1}, {col: 8, row: cfg.rows - 1}];
+                    } else if (level === 2) {
+                        cfg.villages = [{col: 3, row: cfg.rows - 1}, {col: 7, row: cfg.rows - 1}, {col: 5, row: Math.floor(cfg.rows / 2)}];
+                    } else if (level === 3) {
+                        cfg.villages = [{col: 1, row: cfg.rows - 1}, {col: 4, row: cfg.rows - 1}, {col: 7, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 5, row: Math.floor(cfg.rows * 0.6)}, {col: 2, row: Math.floor(cfg.rows * 0.3)}];
+                    } else if (level === 4) {
+                        cfg.villages = [{col: 1, row: cfg.rows - 1}, {col: 3, row: cfg.rows - 1}, {col: 5, row: cfg.rows - 1}, {col: 7, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 2, row: Math.floor(cfg.rows / 3)}, {col: 8, row: Math.floor(cfg.rows * 0.5)}];
+                    } else if (level === 5) {
+                        cfg.villages = [{col: 0, row: cfg.rows - 1}, {col: 2, row: cfg.rows - 1}, {col: 4, row: cfg.rows - 1}, {col: 6, row: cfg.rows - 1}, {col: 8, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 1, row: Math.floor(cfg.rows * 0.4)}, {col: 5, row: Math.floor(cfg.rows * 0.5)}, {col: 7, row: Math.floor(cfg.rows * 0.3)}];
+                    } else if (level === 6) {
+                        cfg.villages = [{col: 1, row: cfg.rows - 1}, {col: 2, row: cfg.rows - 1}, {col: 4, row: cfg.rows - 1}, {col: 6, row: cfg.rows - 1}, {col: 8, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 3, row: Math.floor(cfg.rows * 0.5)}, {col: 7, row: Math.floor(cfg.rows * 0.4)}, {col: 5, row: Math.floor(cfg.rows * 0.2)}];
+                    } else if (level === 7) {
+                        cfg.villages = [{col: 0, row: cfg.rows - 1}, {col: 2, row: cfg.rows - 1}, {col: 4, row: cfg.rows - 1}, {col: 6, row: cfg.rows - 1}, {col: 8, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 1, row: Math.floor(cfg.rows * 0.5)}, {col: 5, row: Math.floor(cfg.rows * 0.3)}, {col: 7, row: Math.floor(cfg.rows * 0.4)}];
+                    } else if (level === 8) {
+                        cfg.villages = [{col: 0, row: cfg.rows - 1}, {col: 2, row: cfg.rows - 1}, {col: 4, row: cfg.rows - 1}, {col: 6, row: cfg.rows - 1}, {col: 8, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 1, row: Math.floor(cfg.rows * 0.4)}, {col: 3, row: Math.floor(cfg.rows * 0.5)}, {col: 5, row: Math.floor(cfg.rows * 0.3)}, {col: 7, row: Math.floor(cfg.rows * 0.6)}];
+                    } else if (level === 9) {
+                        cfg.villages = [{col: 0, row: cfg.rows - 1}, {col: 1, row: cfg.rows - 1}, {col: 3, row: cfg.rows - 1}, {col: 5, row: cfg.rows - 1}, {col: 7, row: cfg.rows - 1}, {col: 8, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 2, row: Math.floor(cfg.rows * 0.4)}, {col: 4, row: Math.floor(cfg.rows * 0.5)}, {col: 6, row: Math.floor(cfg.rows * 0.3)}];
+                    } else {
+                        cfg.villages = [{col: 0, row: cfg.rows - 1}, {col: 1, row: cfg.rows - 1}, {col: 2, row: cfg.rows - 1}, {col: 4, row: cfg.rows - 1}, {col: 6, row: cfg.rows - 1}, {col: 8, row: cfg.rows - 1}, {col: 9, row: cfg.rows - 1}, {col: 3, row: Math.floor(cfg.rows * 0.4)}, {col: 5, row: Math.floor(cfg.rows * 0.5)}, {col: 7, row: Math.floor(cfg.rows * 0.3)}, {col: 4, row: Math.floor(cfg.rows * 0.6)}];
+                    }
+                    
+                    // Time decreases per level
+                    cfg.time = Math.max(15, 35 - Math.floor((level - 1) * 4));
+                    
+                    // Add blockages for levels 3+ with more blockages and avoid adjacency to villages
+                    cfg.blockages = [];
+                    if (level >= 2) {
+                        let blockageCount;
+                        if (level <= 2) blockageCount = 3;
+                        else if (level <= 3) blockageCount = 5;
+                        else if (level <= 4) blockageCount = 6;
+                        else if (level <= 6) blockageCount = 7;
+                        else if (level <= 8) blockageCount = 8;
+                        else blockageCount = 10;
+                        
+                        const usedPositions = new Set();
+                        usedPositions.add(`${cfg.sourceRow},${cfg.sourceCol}`);
+                        cfg.villages.forEach(v => usedPositions.add(`${v.row},${v.col}`));
+                        
+                        // Mark positions adjacent to villages as blocked
+                        cfg.villages.forEach(v => {
+                            for (let dr = -1; dr <= 1; dr++) {
+                                for (let dc = -1; dc <= 1; dc++) {
+                                    if (dr === 0 && dc === 0) continue;
+                                    const nr = v.row + dr;
+                                    const nc = v.col + dc;
+                                    if (nr >= 0 && nr < cfg.rows && nc >= 0 && nc < cfg.cols) {
+                                        usedPositions.add(`${nr},${nc}`);
+                                    }
+                                }
+                            }
+                        });
+                        
+                        for (let b = 0; b < blockageCount; b++) {
+                            let r, c;
+                            do {
+                                r = Math.floor(Math.random() * cfg.rows);
+                                c = Math.floor(Math.random() * cfg.cols);
+                            } while (usedPositions.has(`${r},${c}`) || r < 2);
+                            cfg.blockages.push({ row: r, col: c });
+                            usedPositions.add(`${r},${c}`);
+                        }
+                    }
+                    return cfg;
+                }
+
+                const cfg = getLevelConfig(this.level);
+                const ROWS = cfg.rows;
+
+                // Main logo at bottom center
+                if (this.textures.exists('charityLogo')) {
+                    this.add.image(540, 1900, 'charityLogo').setScale(0.704).setOrigin(0.5);
+                } else {
+                    const smallLogoSize = 70;
+                    const smallLogoX = 540 - smallLogoSize / 2;
+                    const smallLogoY = 1855;
+                    const gameLogoGraphics = this.make.graphics({ x: 0, y: 0, add: true }, false);
+                    gameLogoGraphics.fillStyle(COLORS.YELLOW, 1);
+                    gameLogoGraphics.fillRect(smallLogoX, smallLogoY, smallLogoSize, smallLogoSize);
+                    gameLogoGraphics.lineStyle(5, 0xFFFFFF, 1);
+                    gameLogoGraphics.lineBetween(smallLogoX + 15, smallLogoY + 28, smallLogoX + 55, smallLogoY + 28);
+                    gameLogoGraphics.lineBetween(smallLogoX + 15, smallLogoY + 42, smallLogoX + 55, smallLogoY + 42);
+                    gameLogoGraphics.lineBetween(smallLogoX + 28, smallLogoY + 15, smallLogoX + 28, smallLogoY + 55);
+                    gameLogoGraphics.lineBetween(smallLogoX + 42, smallLogoY + 15, smallLogoX + 42, smallLogoY + 55);
+                }
+                
+                const backBtn = this.add.rectangle(15, 70, 80, 80, COLORS.BLUE);
+                backBtn.setInteractive({ useHandCursor: true });
+                this.add.text(15, 70, '←', { fontSize: '50px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+                backBtn.on('pointerdown', () => {
+                    scene.scene.stop('Game');
+                    scene.scene.start('LevelSelect');
+                });
+
+                // Load second logo if available and display only on levels > 1 at the top
+                if (this.level > 1) {
+                    if (!this.textures.exists('secondLogo')) {
+                        const img2 = new Image();
+                        img2.crossOrigin = 'anonymous';
+                        img2.onload = function() {
+                            scene.textures.addImage('secondLogo', img2);
+                            scene.add.image(540, 110, 'secondLogo').setScale(0.5).setOrigin(0.5).setDepth(10);
+                        };
+                        img2.src = '/11eac3e7-5344-42a9-ad0d-33d20369f480.png';
+                    } else {
+                        this.add.image(540, 110, 'secondLogo').setScale(0.5).setOrigin(0.5).setDepth(10);
+                    }
+                }
+
+                // Only show title on LEVEL ONE
+                if (this.level === 1) {
+                    this.add.text(540, 50, 'Build the Water Network', {
+                        fontSize: '32px',
+                        fontStyle: 'bold',
+                        fill: COLORS.BLUE
+                    }).setOrigin(0.5);
+                }
+
+                // Only show instructions on LEVEL ONE
+                if (this.level === 1) {
+                    this.add.text(540, 90, 'Click tiles to place pipes → Connect 💧 to 🏘️ → Click START', {
+                        fontSize: '18px',
+                        fontStyle: 'bold',
+                        fill: COLORS.DARK_TEXT,
+                        align: 'center'
+                    }).setOrigin(0.5);
+                }
+
+                const timerText = this.add.text(1000, 50, String(cfg.time).padStart(3, '0') + 's', {
+                    fontSize: '60px',
+                    fontStyle: 'bold',
+                    fill: COLORS.BLUE,
+                    fontFamily: 'monospace',
+                    strokeThickness: 4,
+                    stroke: '#FFFFFF'
+                }).setOrigin(0.5);
+                timerText.setDepth(500);
+
+                let gameRunning = false;
+                let gameActive = true;
+                let timeLeft = cfg.time;
+                const initialTime = cfg.time;
+                let waterCollected = 0;
+                const waterRequired = 100 + (scene.level * 20);
+
+                // Water display - liter counter only
+                const waterText = this.add.text(90, 135, '0 L', {
+                    fontSize: '48px',
+                    fontStyle: 'bold',
+                    fill: COLORS.BLUE
+                }).setOrigin(0, 0.5);
+
+                this.add.text(90, 190, '/ ' + waterRequired + ' L', {
+                    fontSize: '18px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0, 0.5);
+
+                let gridState = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+                let sourceCol = cfg.sourceCol, sourceRow = cfg.sourceRow, villages = cfg.villages;
+
+                gridState[sourceRow][sourceCol] = 10;
+                villages.forEach(v => gridState[v.row][v.col] = 20);
+                
+                // Add blockages to grid
+                if (cfg.blockages) {
+                    cfg.blockages.forEach(b => gridState[b.row][b.col] = 99);
+                }
+
+                const gridStartX = 55;
+                const gridStartY = 230;
+
+                const pipeGraphics = this.make.graphics({ x: 0, y: 0, add: true }, false);
+                const waterParticles = [];
+                let timerEvent = null;
+
+                const drawPipe = (g, x, y, type) => {
+                    const sz = TILE_SIZE - 30;
+                    g.fillStyle(0x4A90E2, 1);
+                    g.lineStyle(0);
+
+                    if (type === 1) {
+                        g.fillRectangle(x - sz/2, y - 6, sz, 12);
+                    } else if (type === 2) {
+                        g.fillRectangle(x - 6, y - sz/2, 12, sz);
+                    } else if (type === 3) {
+                        g.fillRectangle(x - sz/2, y - 6, sz/2 + 6, 12);
+                        g.fillRectangle(x - 6, y, 12, sz/2 + 6);
+                    } else if (type === 4) {
+                        g.fillRectangle(x - sz/2, y - 6, sz, 12);
+                        g.fillRectangle(x - 6, y, 12, sz/2 + 6);
+                    } else if (type === 5) {
+                        g.fillRectangle(x - sz/2, y - 6, sz, 12);
+                        g.fillRectangle(x - 6, y - sz/2, 12, sz);
+                    }
+                };
+
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        const x = gridStartX + col * TILE_SIZE + TILE_SIZE / 2;
+                        const y = gridStartY + row * TILE_SIZE + TILE_SIZE / 2;
+
+                        let color = 0xE8E8E8;
+                        if (gridState[row][col] === 10) color = COLORS.BLUE;
+                        if (gridState[row][col] === 20) color = COLORS.YELLOW;
+                        if (gridState[row][col] === 99) color = 0x555555; // Dark blockage
+
+                        const tile = this.add.rectangle(x, y, TILE_SIZE - 4, TILE_SIZE - 4, color);
+                        tile.setStrokeStyle(2, '#AAAAAA');
+
+                        if (gridState[row][col] === 10) {
+                            this.add.text(x, y, '💧', { fontSize: '45px' }).setOrigin(0.5);
+                        } else if (gridState[row][col] === 20) {
+                            this.add.text(x, y, '🏘️', { fontSize: '42px' }).setOrigin(0.5);
+                        }
+
+                        if (gridState[row][col] === 0) {
+                            tile.setInteractive({ useHandCursor: true });
+
+                            tile.on('pointerdown', () => {
+                                if (!gameRunning && gameActive) {
+                                    const types = [1, 2, 3, 4, 5];
+                                    let cur = gridState[row][col];
+                                    let next = cur === 0 ? 1 : types.includes(cur) ? types[(types.indexOf(cur) + 1) % types.length] : 1;
+                                    
+                                    gridState[row][col] = next;
+                                    tile.setFillStyle(0x4A90E2);
+
+                                    // PLAY PLOP SOUND WHEN PIPE IS PLACED
+                                    playPlopSound();
+
+                                    pipeGraphics.clear();
+                                    for (let r = 0; r < ROWS; r++) {
+                                        for (let c = 0; c < COLS; c++) {
+                                            if (gridState[r][c] >= 1 && gridState[r][c] <= 5) {
+                                                const px = gridStartX + c * TILE_SIZE + TILE_SIZE / 2;
+                                                const py = gridStartY + r * TILE_SIZE + TILE_SIZE / 2;
+                                                drawPipe(pipeGraphics, px, py, gridState[r][c]);
+                                            }
+                                        }
+                                    }
+
+                                    tile.setAlpha(0.6);
+                                    this.tweens.add({
+                                        targets: tile,
+                                        alpha: 1,
+                                        duration: 200
+                                    });
+                                }
+                            });
+
+                            // No hover effects - tiles stay solid
+                        }
+                    }
+                }
+
+                const hasPath = (startRow, startCol, endRow, endCol) => {
+                    const visited = Array(ROWS).fill(null).map(() => Array(COLS).fill(false));
+                    const queue = [[startRow, startCol]];
+                    visited[startRow][startCol] = true;
+
+                    while (queue.length > 0) {
+                        const [r, c] = queue.shift();
+                        if (r === endRow && c === endCol) return true;
+
+                        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                        for (const [dr, dc] of directions) {
+                            const nr = r + dr;
+                            const nc = c + dc;
+
+                            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc]) {
+                                const state = gridState[nr][nc];
+                                if ((state >= 1 && state <= 5) || state === 10 || state === 20) {
+                                    visited[nr][nc] = true;
+                                    queue.push([nr, nc]);
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                };
+
+                const getPath = (startRow, startCol, endRow, endCol) => {
+                    const visited = Array(ROWS).fill(null).map(() => Array(COLS).fill(false));
+                    const parent = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+                    const queue = [[startRow, startCol]];
+                    visited[startRow][startCol] = true;
+
+                    while (queue.length > 0) {
+                        const [r, c] = queue.shift();
+                        if (r === endRow && c === endCol) {
+                            const path = [];
+                            let cur = [endRow, endCol];
+                            while (cur) {
+                                path.unshift(cur);
+                                cur = parent[cur[0]][cur[1]];
+                            }
+                            return path;
+                        }
+
+                        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                        for (const [dr, dc] of directions) {
+                            const nr = r + dr;
+                            const nc = c + dc;
+
+                            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc]) {
+                                const state = gridState[nr][nc];
+                                if ((state >= 1 && state <= 5) || state === 10 || state === 20) {
+                                    visited[nr][nc] = true;
+                                    parent[nr][nc] = [r, c];
+                                    queue.push([nr, nc]);
+                                }
+                            }
+                        }
+                    }
+                    return [];
+                };
+
+                // START TIMER IMMEDIATELY - counts down during planning phase
+                timerEvent = this.time.addEvent({
+                    delay: 1000,
+                    callback: () => {
+                        if (!gameRunning) {  // Only count down before START is pressed
+                            timeLeft--;
+                            let timerColor = COLORS.BLUE;
+                            if (timeLeft <= 10) {
+                                timerColor = 0xFF0000;
+                            } else if (timeLeft <= 20) {
+                                timerColor = 0xFFAA00;
+                            }
+                            timerText.setFill(timerColor);
+                            timerText.setText(String(timeLeft).padStart(3, '0') + 's');
+
+                            if (timeLeft <= 0) {
+                                timerEvent.remove();
+                                gameActive = false;
+
+                                // Time ran out before starting!
+                                alert('⏰ TIME\'S UP!\n\nYou ran out of planning time. Try to be faster next time!');
+                                scene.scene.start('LevelSelect');
+                            }
+                        }
+                    },
+                    repeat: -1
+                });
+
+                const startBtn = this.add.rectangle(920, 180, 160, 80, COLORS.YELLOW);
+                startBtn.setInteractive({ useHandCursor: true });
+                startBtn.setStrokeStyle(4, COLORS.BLUE);
+                startBtn.setDepth(1000);
+
+                const startText = this.add.text(920, 180, '▶ START', {
+                    fontSize: '22px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0.5);
+                startText.setDepth(1001);
+
+                startBtn.on('pointerover', () => {
+                    startBtn.setFillStyle(0xFFD700);
+                    startText.setFontSize(24);
+                });
+
+                startBtn.on('pointerout', () => {
+                    startBtn.setFillStyle(COLORS.YELLOW);
+                    startText.setFontSize(22);
+                });
+
+                startBtn.on('pointerdown', () => {
+                    if (!gameRunning && gameActive) {
+                        let connectedVillages = 0;
+                        const activePaths = [];
+
+                        for (const village of villages) {
+                            if (hasPath(sourceRow, sourceCol, village.row, village.col)) {
+                                connectedVillages++;
+                                activePaths.push(getPath(sourceRow, sourceCol, village.row, village.col));
+                            }
+                        }
+
+                        if (connectedVillages > 0) {
+                            gameRunning = true;
+                            startBtn.setVisible(false);
+                            startText.setVisible(false);
+
+                            // STOP THE PLANNING TIMER - timer freezes when START is clicked
+                            if (timerEvent) {
+                                timerEvent.remove();
+                            }
+
+                            let waterPerSecond = connectedVillages * 10;
+
+                            const createWaterAnimation = (path) => {
+                                // Create droplets that trail down the path
+                                const droplets = [];
+                                const dropletSpacing = Math.max(1, Math.floor(path.length / 5)); // 5 droplets per path
+
+                                this.time.addEvent({
+                                    delay: 30,
+                                    callback: () => {
+                                        // Update all active droplets
+                                        droplets.forEach((drop, idx) => {
+                                            drop.progress += 0.03; // Smooth speed
+                                            
+                                            if (drop.progress >= 1) {
+                                                drop.drop.destroy();
+                                                droplets.splice(idx, 1);
+                                            } else {
+                                                const pathIdx = Math.floor(drop.progress * (path.length - 1));
+                                                const [r, c] = path[pathIdx];
+                                                const x = gridStartX + c * TILE_SIZE + TILE_SIZE / 2;
+                                                const y = gridStartY + r * TILE_SIZE + TILE_SIZE / 2;
+                                                drop.drop.setPosition(x, y);
+                                            }
+                                        });
+
+                                        // Spawn new droplets at intervals
+                                        if (droplets.length < 6) {
+                                            const spawnDrop = scene.add.circle(0, 0, 12, 0xFFFFFF); // White droplets, 12px radius
+                                            spawnDrop.setDepth(100); // Render on top
+                                            droplets.push({ drop: spawnDrop, progress: 0 });
+                                            waterParticles.push(spawnDrop);
+                                        }
+                                    },
+                                    repeat: -1
+                                });
+                            };
+
+                            activePaths.forEach(p => createWaterAnimation(p));
+
+                            const flowEvent = this.time.addEvent({
+                                delay: 1000,
+                                callback: () => {
+                                    if (gameActive) {
+                                        waterCollected += waterPerSecond;
+                                        waterText.setText(waterCollected + ' / ' + waterRequired + ' L');
+
+                                        if (waterCollected >= waterRequired) {
+                                            gameActive = false;
+                                            flowEvent.remove();
+                                            waterParticles.forEach(p => p.destroy());
+
+                                            // Calculate points: water * time multiplier * difficulty multiplier
+                                            const timeMultiplier = 1 + (timeLeft / Math.max(1, initialTime)) * 3;
+                                            const difficultyMultiplier = 1 + (scene.level * 0.6);
+                                            const points = Math.round(waterCollected * timeMultiplier * difficultyMultiplier);
+
+                                            // Persist best score per level
+                                            const key = 'gfwc_score_level_' + scene.level;
+                                            const prev = parseInt(localStorage.getItem(key) || '0', 10);
+                                            const best = Math.max(prev, points);
+                                            localStorage.setItem(key, best);
+
+                                            playCompletionChime();
+                                            alert('🎉 LEVEL ' + scene.level + ' COMPLETE!\n\n💧 ' + waterCollected + ' L delivered\n⏱️ ' + timeLeft + 's left\n🏆 Points: ' + points + '\nBest: ' + best + ' pts');
+                                            scene.scene.start('LevelSelect');
+                                        }
+                                    }
+                                },
+                                repeat: -1
+                            });
+                        } else {
+                            alert('❌ No valid path!\n\nConnect water source (💧) to villages (🏘️) with pipes.');
+                        }
+                    }
+                });
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 1080,
+            height: 1920,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                expandParent: true,
+            },
+            transparent: true,
+            scene: [MenuScene, LevelSelectScene, GameScene]
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>

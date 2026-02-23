@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jerry's Water Network</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; overflow: hidden; }
+        canvas { display: block; margin: auto; }
+    </style>
+</head>
+<body>
+    <script>
+        const COLORS = {
+            BLUE: 0x2596BE,
+            YELLOW: 0xFFC908,
+            LIGHT_BLUE: 0xE8F4F8,
+            WHITE: 0xFFFFFF,
+            DARK_TEXT: 0x333333,
+        };
+
+        // Menu Scene
+        class MenuScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'Menu' });
+            }
+
+            create() {
+                this.add.rectangle(540, 960, 1080, 1920, COLORS.LIGHT_BLUE);
+                this.add.text(540, 300, 'Jerry\'s Water Network', {
+                    fontSize: '56px',
+                    fontStyle: 'bold',
+                    fill: '#FFFFFF',
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                this.add.text(540, 400, 'Bringing clean water to villages', {
+                    fontSize: '20px',
+                    fill: '#FFFFFF',
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                const scene = this;
+                const playBtn = this.add.rectangle(540, 800, 300, 100, COLORS.YELLOW);
+                playBtn.setInteractive({ useHandCursor: true });
+                playBtn.setStrokeStyle(4, '#FFFFFF');
+
+                const playText = this.add.text(540, 800, 'PLAY GAME', {
+                    fontSize: '40px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0.5);
+
+                playBtn.on('pointerover', () => {
+                    playBtn.setFillStyle(0xFFD700);
+                    playText.setFontSize(44);
+                });
+
+                playBtn.on('pointerout', () => {
+                    playBtn.setFillStyle(COLORS.YELLOW);
+                    playText.setFontSize(40);
+                });
+
+                playBtn.on('pointerdown', () => {
+                    scene.scene.stop('Menu');
+                    scene.scene.start('LevelSelect');
+                });
+
+                const infoBtn = this.add.rectangle(540, 920, 300, 100, COLORS.BLUE);
+                infoBtn.setInteractive({ useHandCursor: true });
+                infoBtn.setStrokeStyle(4, '#FFFFFF');
+
+                const infoText = this.add.text(540, 920, 'HOW TO PLAY', {
+                    fontSize: '36px',
+                    fontStyle: 'bold',
+                    fill: '#FFFFFF'
+                }).setOrigin(0.5);
+
+                infoBtn.on('pointerover', () => {
+                    infoBtn.setFillStyle(0x1B7FA5);
+                    infoText.setFontSize(40);
+                });
+
+                infoBtn.on('pointerout', () => {
+                    infoBtn.setFillStyle(COLORS.BLUE);
+                    infoText.setFontSize(36);
+                });
+
+                infoBtn.on('pointerdown', () => {
+                    alert('HOW TO PLAY:\n\n1. Click tiles to place pipes\n2. Connect the water source (💧) to villages (🏘️)\n3. Click START to flow water\n4. Deliver 100 liters before time runs out!');
+                });
+
+                this.add.text(540, 1800, 'A game by charity: water\nEvery drop counts', {
+                    fontSize: '14px',
+                    fill: '#FFFFFF',
+                    align: 'center'
+                }).setOrigin(0.5);
+            }
+        }
+
+        // Level Select Scene
+        class LevelSelectScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'LevelSelect' });
+            }
+
+            create() {
+                this.add.rectangle(540, 960, 1080, 1920, COLORS.LIGHT_BLUE);
+                this.add.text(540, 300, 'Select Level', {
+                    fontSize: '60px',
+                    fontStyle: 'bold',
+                    fill: '#FFFFFF'
+                }).setOrigin(0.5);
+
+                const level1Btn = this.add.rectangle(540, 700, 400, 120, COLORS.YELLOW);
+                level1Btn.setInteractive({ useHandCursor: true });
+                level1Btn.setStrokeStyle(4, COLORS.BLUE);
+
+                this.add.text(540, 700, '📍 LEVEL 1: Easy', {
+                    fontSize: '40px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0.5);
+
+                level1Btn.on('pointerdown', () => {
+                    this.scene.stop('LevelSelect');
+                    this.scene.start('Game', { level: 1 });
+                });
+
+                const level2Btn = this.add.rectangle(540, 950, 400, 120, COLORS.BLUE);
+                level2Btn.setInteractive({ useHandCursor: true });
+                level2Btn.setStrokeStyle(4, COLORS.YELLOW);
+
+                this.add.text(540, 950, '🏔️ LEVEL 2: Hard', {
+                    fontSize: '40px',
+                    fontStyle: 'bold',
+                    fill: '#FFFFFF'
+                }).setOrigin(0.5);
+
+                level2Btn.on('pointerdown', () => {
+                    this.scene.stop('LevelSelect');
+                    this.scene.start('Game', { level: 2 });
+                });
+
+                const backBtn = this.add.rectangle(100, 100, 80, 80, COLORS.BLUE);
+                backBtn.setInteractive({ useHandCursor: true });
+                this.add.text(100, 100, '←', { fontSize: '50px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+                
+                backBtn.on('pointerdown', () => {
+                    this.scene.stop('LevelSelect');
+                    this.scene.start('Menu');
+                });
+            }
+        }
+
+        // Game Scene
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'Game' });
+            }
+
+            init(data) {
+                this.level = data.level || 1;
+            }
+
+            create() {
+                const scene = this;
+                const TILE_SIZE = 95;
+                const ROWS = this.level === 1 ? 9 : 12;
+                const COLS = 10;
+                
+                this.add.rectangle(540, 960, 1080, 1920, 0xF5F7FA);
+                this.add.rectangle(540, 70, 1080, 140, COLORS.LIGHT_BLUE);
+                
+                const backBtn = this.add.rectangle(60, 70, 80, 80, COLORS.BLUE);
+                backBtn.setInteractive({ useHandCursor: true });
+                this.add.text(60, 70, '←', { fontSize: '50px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+                backBtn.on('pointerdown', () => {
+                    scene.scene.stop('Game');
+                    scene.scene.start('LevelSelect');
+                });
+
+                this.add.text(540, 50, this.level === 1 ? 'Build the Water Network' : 'Advanced Pipeline System', {
+                    fontSize: '32px',
+                    fontStyle: 'bold',
+                    fill: COLORS.BLUE
+                }).setOrigin(0.5);
+
+                this.add.text(540, 90, 'Click tiles to place pipes → Connect 💧 to 🏘️ → Click START', {
+                    fontSize: '18px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT,
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                const timerText = this.add.text(1000, 50, '060s', {
+                    fontSize: '40px',
+                    fontStyle: 'bold',
+                    fill: COLORS.BLUE,
+                    fontFamily: 'monospace'
+                }).setOrigin(0.5);
+
+                this.add.text(150, 160, 'Water Delivered:', {
+                    fontSize: '20px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                });
+
+                const waterText = this.add.text(150, 205, '0 / 100 L', {
+                    fontSize: '48px',
+                    fontStyle: 'bold',
+                    fill: COLORS.BLUE
+                });
+
+                let gameRunning = false;
+                let gameActive = true;
+                let timeLeft = 60;
+                let waterCollected = 0;
+
+                let gridState = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+                let sourceCol, sourceRow, villages;
+
+                if (this.level === 1) {
+                    sourceCol = 5;
+                    sourceRow = 0;
+                    villages = [{ col: 2, row: 8 }, { col: 8, row: 8 }];
+                } else {
+                    sourceCol = 5;
+                    sourceRow = 0;
+                    villages = [{ col: 1, row: 11 }, { col: 5, row: 11 }, { col: 9, row: 11 }];
+                }
+
+                gridState[sourceRow][sourceCol] = 10;
+                villages.forEach(v => gridState[v.row][v.col] = 20);
+
+                const gridStartX = 55;
+                const gridStartY = 230;
+
+                const pipeGraphics = this.make.graphics({ x: 0, y: 0, add: true }, false);
+                const waterParticles = [];
+
+                const drawPipe = (g, x, y, type) => {
+                    const sz = TILE_SIZE - 30;
+                    g.fillStyle(0x4A90E2, 1);
+                    g.lineStyle(0);
+
+                    if (type === 1) {
+                        g.fillRectangle(x - sz/2, y - 6, sz, 12);
+                    } else if (type === 2) {
+                        g.fillRectangle(x - 6, y - sz/2, 12, sz);
+                    } else if (type === 3) {
+                        g.fillRectangle(x - sz/2, y - 6, sz/2 + 6, 12);
+                        g.fillRectangle(x - 6, y, 12, sz/2 + 6);
+                    } else if (type === 4) {
+                        g.fillRectangle(x - sz/2, y - 6, sz, 12);
+                        g.fillRectangle(x - 6, y, 12, sz/2 + 6);
+                    } else if (type === 5) {
+                        g.fillRectangle(x - sz/2, y - 6, sz, 12);
+                        g.fillRectangle(x - 6, y - sz/2, 12, sz);
+                    }
+                };
+
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        const x = gridStartX + col * TILE_SIZE + TILE_SIZE / 2;
+                        const y = gridStartY + row * TILE_SIZE + TILE_SIZE / 2;
+
+                        let color = 0xE8E8E8;
+                        if (gridState[row][col] === 10) color = COLORS.BLUE;
+                        if (gridState[row][col] === 20) color = COLORS.YELLOW;
+
+                        const tile = this.add.rectangle(x, y, TILE_SIZE - 4, TILE_SIZE - 4, color);
+                        tile.setStrokeStyle(2, '#AAAAAA');
+
+                        if (gridState[row][col] === 10) {
+                            this.add.text(x, y, '💧', { fontSize: '45px' }).setOrigin(0.5);
+                        } else if (gridState[row][col] === 20) {
+                            this.add.text(x, y, '🏘️', { fontSize: '42px' }).setOrigin(0.5);
+                        }
+
+                        if (gridState[row][col] === 0) {
+                            tile.setInteractive({ useHandCursor: true });
+
+                            tile.on('pointerdown', () => {
+                                if (!gameRunning && gameActive) {
+                                    const types = [1, 2, 3, 4, 5];
+                                    let cur = gridState[row][col];
+                                    let next = cur === 0 ? 1 : types.includes(cur) ? types[(types.indexOf(cur) + 1) % types.length] : 1;
+                                    
+                                    gridState[row][col] = next;
+                                    tile.setFillStyle(0x4A90E2);
+
+                                    pipeGraphics.clear();
+                                    for (let r = 0; r < ROWS; r++) {
+                                        for (let c = 0; c < COLS; c++) {
+                                            if (gridState[r][c] >= 1 && gridState[r][c] <= 5) {
+                                                const px = gridStartX + c * TILE_SIZE + TILE_SIZE / 2;
+                                                const py = gridStartY + r * TILE_SIZE + TILE_SIZE / 2;
+                                                drawPipe(pipeGraphics, px, py, gridState[r][c]);
+                                            }
+                                        }
+                                    }
+
+                                    tile.setAlpha(0.6);
+                                    this.tweens.add({
+                                        targets: tile,
+                                        alpha: 1,
+                                        duration: 200
+                                    });
+                                }
+                            });
+
+                            tile.on('pointerover', () => {
+                                if (!gameRunning && gameActive) {
+                                    tile.setFillStyle(0xD0D0D0);
+                                }
+                            });
+
+                            tile.on('pointerout', () => {
+                                if (gridState[row][col] === 0) {
+                                    tile.setFillStyle(0xE8E8E8);
+                                }
+                            });
+                        }
+                    }
+                }
+
+                const hasPath = (startRow, startCol, endRow, endCol) => {
+                    const visited = Array(ROWS).fill(null).map(() => Array(COLS).fill(false));
+                    const queue = [[startRow, startCol]];
+                    visited[startRow][startCol] = true;
+
+                    while (queue.length > 0) {
+                        const [r, c] = queue.shift();
+                        if (r === endRow && c === endCol) return true;
+
+                        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                        for (const [dr, dc] of directions) {
+                            const nr = r + dr;
+                            const nc = c + dc;
+
+                            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc]) {
+                                const state = gridState[nr][nc];
+                                if ((state >= 1 && state <= 5) || state === 10 || state === 20) {
+                                    visited[nr][nc] = true;
+                                    queue.push([nr, nc]);
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                };
+
+                const getPath = (startRow, startCol, endRow, endCol) => {
+                    const visited = Array(ROWS).fill(null).map(() => Array(COLS).fill(false));
+                    const parent = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+                    const queue = [[startRow, startCol]];
+                    visited[startRow][startCol] = true;
+
+                    while (queue.length > 0) {
+                        const [r, c] = queue.shift();
+                        if (r === endRow && c === endCol) {
+                            const path = [];
+                            let cur = [endRow, endCol];
+                            while (cur) {
+                                path.unshift(cur);
+                                cur = parent[cur[0]][cur[1]];
+                            }
+                            return path;
+                        }
+
+                        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                        for (const [dr, dc] of directions) {
+                            const nr = r + dr;
+                            const nc = c + dc;
+
+                            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc]) {
+                                const state = gridState[nr][nc];
+                                if ((state >= 1 && state <= 5) || state === 10 || state === 20) {
+                                    visited[nr][nc] = true;
+                                    parent[nr][nc] = [r, c];
+                                    queue.push([nr, nc]);
+                                }
+                            }
+                        }
+                    }
+                    return [];
+                };
+
+                const startBtn = this.add.rectangle(540, 1700, 400, 110, COLORS.YELLOW);
+                startBtn.setInteractive({ useHandCursor: true });
+                startBtn.setStrokeStyle(5, COLORS.BLUE);
+
+                const startText = this.add.text(540, 1700, '▶ START WATER FLOW', {
+                    fontSize: '32px',
+                    fontStyle: 'bold',
+                    fill: COLORS.DARK_TEXT
+                }).setOrigin(0.5);
+
+                startBtn.on('pointerover', () => {
+                    startBtn.setFillStyle(0xFFD700);
+                    startText.setFontSize(34);
+                });
+
+                startBtn.on('pointerout', () => {
+                    startBtn.setFillStyle(COLORS.YELLOW);
+                    startText.setFontSize(32);
+                });
+
+                startBtn.on('pointerdown', () => {
+                    if (!gameRunning && gameActive) {
+                        let connectedVillages = 0;
+                        const activePaths = [];
+
+                        for (const village of villages) {
+                            if (hasPath(sourceRow, sourceCol, village.row, village.col)) {
+                                connectedVillages++;
+                                activePaths.push(getPath(sourceRow, sourceCol, village.row, village.col));
+                            }
+                        }
+
+                        if (connectedVillages > 0) {
+                            gameRunning = true;
+                            startBtn.setVisible(false);
+                            startText.setVisible(false);
+
+                            let waterPerSecond = connectedVillages * 6;
+
+                            const createWaterAnimation = (path) => {
+                                let progress = 0;
+
+                                this.time.addEvent({
+                                    delay: 50,
+                                    callback: () => {
+                                        progress += 0.05;
+                                        if (progress >= 1) progress = 0;
+
+                                        const idx = Math.floor(progress * (path.length - 1));
+                                        const [r, c] = path[idx];
+                                        const x = gridStartX + c * TILE_SIZE + TILE_SIZE / 2;
+                                        const y = gridStartY + r * TILE_SIZE + TILE_SIZE / 2;
+
+                                        if (waterParticles.length > activePaths.length * 2) {
+                                            waterParticles.shift().destroy();
+                                        }
+
+                                        const drop = scene.add.circle(x, y, 8, 0x4A90E2);
+                                        waterParticles.push(drop);
+                                    },
+                                    repeat: -1
+                                });
+                            };
+
+                            activePaths.forEach(p => createWaterAnimation(p));
+
+                            const flowEvent = this.time.addEvent({
+                                delay: 1000,
+                                callback: () => {
+                                    if (gameActive) {
+                                        waterCollected += waterPerSecond;
+                                        waterText.setText(waterCollected + ' / 100 L');
+
+                                        if (waterCollected >= 100) {
+                                            gameActive = false;
+                                            flowEvent.remove();
+                                            waterParticles.forEach(p => p.destroy());
+                                            alert('🎉 LEVEL ' + scene.level + ' COMPLETE!\n💧 ' + waterCollected + ' liters delivered!\n\nGreat job!');
+                                            scene.scene.start('LevelSelect');
+                                        }
+                                    }
+                                },
+                                repeat: -1
+                            });
+                        } else {
+                            alert('❌ No valid path!\n\nConnect water source (💧) to villages (🏘️) with pipes.');
+                        }
+                    }
+                });
+
+                const timerEvent = this.time.addEvent({
+                    delay: 1000,
+                    callback: () => {
+                        timeLeft--;
+                        timerText.setText(String(timeLeft).padStart(3, '0') + 's');
+
+                        if (timeLeft <= 0) {
+                            timerEvent.remove();
+                            gameActive = false;
+                            waterParticles.forEach(p => p.destroy());
+                            
+                            let msg = '⏰ TIME\'S UP!\n\n';
+                            if (waterCollected >= 75) msg += '💪 Excellent! ' + waterCollected + ' L delivered!';
+                            else if (waterCollected >= 50) msg += '👍 Great! ' + waterCollected + ' L delivered!';
+                            else if (waterCollected > 0) msg += '😊 Good try! ' + waterCollected + ' L delivered. Next time!';
+                            else msg += '🎮 Create a path first!';
+                            
+                            alert(msg);
+                            scene.scene.start('LevelSelect');
+                        }
+                    },
+                    repeat: 60
+                });
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 1080,
+            height: 1920,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                expandParent: true,
+            },
+            backgroundColor: COLORS.WHITE,
+            scene: [MenuScene, LevelSelectScene, GameScene]
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>

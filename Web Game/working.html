@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jerry's Water Network</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { margin: 0; padding: 0; }
+        #game-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="src/constants/BrandingConstants.js"></script>
+    
+    <script>
+        // Minimal menu scene
+        class MinimalMenuScene extends Phaser.Scene {
+            constructor() {
+                super('MainMenuScene');
+            }
+
+            create() {
+                try {
+                    console.log('MainMenuScene create - start');
+                    
+                    // Background
+                    this.add.rectangle(540, 960, 1080, 1920, 0xE8F4F8);
+                    console.log('Background added');
+
+                    // Title
+                    const title = this.add.text(540, 300, 'Jerry\'s Water Network', {
+                        fontSize: '48px',
+                        fill: '#FFFFFF',
+                        fontStyle: 'bold'
+                    }).setOrigin(0.5);
+                    console.log('Title added');
+
+                    // Subtitle
+                    this.add.text(540, 400, 'Bringing clean water to villages', {
+                        fontSize: '18px',
+                        fill: '#FFFFFF'
+                    }).setOrigin(0.5);
+
+                    // Play Button
+                    const playBtn = this.add.rectangle(540, 800, 220, 70, 0xFFC908);
+                    playBtn.setInteractive({ useHandCursor: true });
+                    playBtn.setStrokeStyle(2, '#FFFFFF');
+
+                    this.add.text(540, 800, 'PLAY', {
+                        fontSize: '28px',
+                        fill: '#333333',
+                        fontStyle: 'bold'
+                    }).setOrigin(0.5);
+
+                    playBtn.on('pointerover', () => playBtn.setFillStyle(0xFFD700));
+                    playBtn.on('pointerout', () => playBtn.setFillStyle(0xFFC908));
+                    playBtn.on('pointerdown', () => {
+                        console.log('Play button clicked');
+                        alert('Level would start here!');
+                    });
+
+                    // Info Button
+                    const infoBtn = this.add.rectangle(540, 920, 220, 70, 0x2596BE);
+                    infoBtn.setInteractive({ useHandCursor: true });
+                    infoBtn.setStrokeStyle(2, '#FFFFFF');
+
+                    this.add.text(540, 920, 'HOW IT WORKS', {
+                        fontSize: '18px',
+                        fill: '#FFFFFF',
+                        fontStyle: 'bold'
+                    }).setOrigin(0.5);
+
+                    infoBtn.on('pointerover', () => infoBtn.setFillStyle(0x1B7FA5));
+                    infoBtn.on('pointerout', () => infoBtn.setFillStyle(0x2596BE));
+                    infoBtn.on('pointerdown', () => {
+                        alert('HOW IT WORKS:\n\n' +
+                            '1. Build pipes from Water Source to Village\n' +
+                            '2. Water flows downward\n' +
+                            '3. Collect 100+ units before time runs out\n' +
+                            '4. Use Filters for 2x bonus\n\n' +
+                            'You have 60 seconds per level!');
+                    });
+
+                    // Footer
+                    this.add.text(540, 1800, 'A game by charity: water\nEvery drop counts', {
+                        fontSize: '14px',
+                        fill: '#FFFFFF',
+                        align: 'center'
+                    }).setOrigin(0.5);
+
+                    console.log('MainMenuScene create - complete');
+                } catch (error) {
+                    console.error('Error in MainMenuScene:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+
+        // Game config
+        const gameConfig = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 1080,
+                height: 1920,
+                expandParent: true
+            },
+            backgroundColor: '#FFFFFF',
+            scene: [MinimalMenuScene]
+        };
+
+        console.log('Creating game...');
+        try {
+            const game = new Phaser.Game(gameConfig);
+            console.log('Game created successfully');
+        } catch (error) {
+            console.error('Game creation error:', error);
+            document.body.innerHTML = '<h1>Error: ' + error.message + '</h1><pre>' + error.stack + '</pre>';
+        }
+    </script>
+</body>
+</html>

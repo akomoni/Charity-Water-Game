@@ -1,0 +1,37 @@
+{
+  "levelId": 1,
+  "levelName": "Getting Started",
+  "difficulty": "Easy",
+  "waterNeeded": 100,
+  "timerSeconds": 60,
+  "maxPieces": 10,
+  "description": "Build your first water network to help bring clean water to the village.",
+  "rewards": {
+    "baseReward": 100,
+    "bonus": 0
+  },
+  "grid": {
+    "width": 8,
+    "height": 12,
+    "tileSize": 120
+  },
+  "specialTiles": [
+    {
+      "type": "WaterSource",
+      "column": 4,
+      "row": 1,
+      "description": "Water flows from here"
+    },
+    {
+      "type": "Village",
+      "column": 4,
+      "row": 12,
+      "description": "Destination for water"
+    }
+  ],
+  "hints": [
+    "Connect pipes from the water source at the top to the village at the bottom.",
+    "Use straight pipes and corners to create your water path.",
+    "Make sure the water reaches the village before time runs out!"
+  ]
+}

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Diagnostics</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        #log {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Game Diagnostics</h1>
+    <div id="log"></div>
+
+    <script>
+        const logEl = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logEl.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+
+        // Catch all errors
+        window.addEventListener('error', (e) => {
+            log(`ERROR: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            log(`PROMISE REJECTION: ${e.reason}`, 'error');
+        });
+
+        log('=== GAME DIAGNOSTICS START ===', 'info');
+        log(`User Agent: ${navigator.userAgent}`, 'info');
+        log('Loading Phaser...', 'info');
+    </script>
+
+    <!-- Phaser -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script>
+        if (typeof Phaser !== 'undefined') {
+            log(`✓ Phaser loaded: version ${Phaser.VERSION}`, 'success');
+        } else {
+            log('✗ Phaser failed to load!', 'error');
+        }
+    </script>
+
+    <!-- BrandingConstants -->
+    <script src="src/constants/BrandingConstants.js"></script>
+    <script>
+        if (typeof BrandingConstants !== 'undefined') {
+            log(`✓ BrandingConstants loaded`, 'success');
+            log(`  - SCREEN_WIDTH: ${BrandingConstants.SCREEN_WIDTH}`, 'info');
+            log(`  - SCREEN_HEIGHT: ${BrandingConstants.SCREEN_HEIGHT}`, 'info');
+        } else {
+            log('✗ BrandingConstants failed to load!', 'error');
+        }
+    </script>
+
+    <!-- GameManager -->
+    <script src="src/systems/GameManager.js"></script>
+    <script>
+        if (typeof GameManager !== 'undefined') {
+            log('✓ GameManager class loaded', 'success');
+            try {
+                const gm = new GameManager();
+                log('✓ GameManager instance created', 'success');
+                log(`  - Current Level: ${gm.getCurrentLevel()}`, 'info');
+            } catch (e) {
+                log(`✗ GameManager failed to instantiate: ${e.message}`, 'error');
+            }
+        } else {
+            log('✗ GameManager class failed to load!', 'error');
+        }
+    </script>
+
+    <!-- All other scripts -->
+    <script src="src/systems/GridSystem.js"></script>
+    <script>log('✓ GridSystem loaded', 'success');</script>
+
+    <script src="src/systems/PipeManager.js"></script>
+    <script>log('✓ PipeManager loaded', 'success');</script>
+
+    <script src="src/objects/Tile.js"></script>
+    <script>log('✓ Tile loaded', 'success');</script>
+
+    <script src="src/objects/WaterParticle.js"></script>
+    <script>log('✓ WaterParticle loaded', 'success');</script>
+
+    <script src="src/ui/UIManager.js"></script>
+    <script>log('✓ UIManager loaded', 'success');</script>
+
+    <script src="src/scenes/BootScene.js"></script>
+    <script>log('✓ BootScene loaded', 'success');</script>
+
+    <script src="src/scenes/MainMenuScene.js"></script>
+    <script>log('✓ MainMenuScene loaded', 'success');</script>
+
+    <script src="src/scenes/LevelScene.js"></script>
+    <script>log('✓ LevelScene loaded', 'success');</script>
+
+    <script src="src/scenes/LevelCompleteScene.js"></script>
+    <script>log('✓ LevelCompleteScene loaded', 'success');</script>
+
+    <script src="src/scenes/RewardsScene.js"></script>
+    <script>log('✓ RewardsScene loaded', 'success');</script>
+
+    <!-- Game initialization -->
+    <script>
+        log('=== Starting Phaser Game Initialization ===', 'info');
+    </script>
+
+    <script src="src/Game.js"></script>
+
+    <script>
+        setTimeout(() => {
+            log('=== Checking game state ===', 'info');
+            if (typeof window.game !== 'undefined') {
+                log(`✓ Game instance exists`, 'success');
+                log(`  - Type: ${window.game.constructor.name}`, 'info');
+                log(`  - Scene manager: ${typeof window.game.scene}`, 'info');
+                const scenes = window.game.scene.keys;
+                log(`  - Scenes: ${Object.keys(scenes).join(', ')}`, 'info');
+            } else {
+                log('✗ Game instance NOT found!', 'error');
+            }
+
+            if (typeof window.gameManager !== 'undefined') {
+                log(`✓ GameManager instance exists`, 'success');
+            } else {
+                log('✗ GameManager instance NOT found!', 'error');
+            }
+
+            log('=== DIAGNOSTICS COMPLETE ===', 'info');
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jerry's Water Network - Simple Test</title>
+    <style>
+        body { margin: 0; padding: 0; }
+        #game-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- Phaser -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+
+    <script>
+        console.log('=== SIMPLE GAME TEST ===');
+        console.log('Phaser version:', Phaser.VERSION);
+
+        // Simple scenes
+        class SimpleMenuScene extends Phaser.Scene {
+            constructor() {
+                super('SimpleMenu');
+                console.log('SimpleMenuScene constructor');
+            }
+
+            create() {
+                console.log('SimpleMenuScene.create() called');
+                
+                // Background
+                this.add.rectangle(540, 960, 1080, 1920, 0xE8F4F8);
+                console.log('Background added');
+
+                // Title
+                const title = this.add.text(540, 400, 'Jerry\'s Water Network', {
+                    fontSize: '48px',
+                    fill: '#FFFFFF',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+                console.log('Title added');
+
+                // Subtitle
+                this.add.text(540, 500, 'Bringing clean water to villages', {
+                    fontSize: '18px',
+                    fill: '#FFFFFF'
+                }).setOrigin(0.5);
+                console.log('Subtitle added');
+
+                // Play button
+                const playBtn = this.add.rectangle(540, 800, 220, 70, 0xFFC908);
+                playBtn.setInteractive({ useHandCursor: true });
+                playBtn.setStrokeStyle(2, '#FFFFFF');
+
+                const playText = this.add.text(540, 800, 'PLAY', {
+                    fontSize: '28px',
+                    fill: '#333333',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+                console.log('Play button added');
+
+                playBtn.on('pointerover', () => {
+                    playBtn.setFillStyle(0xFFD700);
+                });
+
+                playBtn.on('pointerout', () => {
+                    playBtn.setFillStyle(0xFFC908);
+                });
+
+                playBtn.on('pointerdown', () => {
+                    console.log('Play button clicked!');
+                    alert('Play clicked! Level would start here.');
+                });
+
+                // Info button
+                const infoBtn = this.add.rectangle(540, 920, 220, 70, 0x2596BE);
+                infoBtn.setInteractive({ useHandCursor: true });
+                infoBtn.setStrokeStyle(2, '#FFFFFF');
+
+                const infoText = this.add.text(540, 920, 'HOW IT WORKS', {
+                    fontSize: '18px',
+                    fill: '#FFFFFF',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+                console.log('Info button added');
+
+                infoBtn.on('pointerdown', () => {
+                    alert('How it works clicked!');
+                });
+
+                // Footer
+                this.add.text(540, 1800, 'A game by charity: water\nEvery drop counts', {
+                    fontSize: '14px',
+                    fill: '#FFFFFF',
+                    align: 'center'
+                }).setOrigin(0.5);
+                console.log('Footer added');
+
+                console.log('SimpleMenuScene.create() complete');
+            }
+        }
+
+        // Game config
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 1080,
+                height: 1920,
+                expandParent: true
+            },
+            backgroundColor: '#FFFFFF',
+            scene: [SimpleMenuScene]
+        };
+
+        console.log('Creating Phaser game...');
+        const game = new Phaser.Game(config);
+        console.log('Game created successfully!');
+        console.log('Game type:', game.constructor.name);
+    </script>
+</body>
+</html>
