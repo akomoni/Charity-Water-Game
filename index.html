@@ -657,9 +657,9 @@
                     gameLogoGraphics.lineBetween(smallLogoX + 42, smallLogoY + 15, smallLogoX + 42, smallLogoY + 55);
                 }
                 
-                const backBtn = this.add.rectangle(15, 70, 80, 80, COLORS.BLUE);
+                const backBtn = this.add.rectangle(30, 70, 80, 80, COLORS.BLUE);
                 backBtn.setInteractive({ useHandCursor: true });
-                this.add.text(15, 70, '←', { fontSize: '50px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+                this.add.text(30, 70, '←', { fontSize: '50px', fill: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
                 backBtn.on('pointerdown', () => {
                     scene.scene.stop('Game');
                     scene.scene.start('LevelSelect');
