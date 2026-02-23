@@ -29,7 +29,7 @@
         };
 
         // Local logo file (added to workspace)
-        const LOGO_URL = '/charity-water-logo-9121D887A9-seeklogo.com.png';
+        const LOGO_URL = 'charity-water-logo-9121D887A9-seeklogo.com.png';
         
         // Background music - two separate tracks
         let menuMusic = null;
@@ -37,7 +37,7 @@
         
         function initMenuMusic() {
             if (!menuMusic) {
-                menuMusic = new Audio('/mi_music-gaming-track-144461.mp3');
+                menuMusic = new Audio('mi_music-gaming-track-144461.mp3');
                 menuMusic.loop = true;
                 menuMusic.volume = 0.3;
             }
@@ -45,7 +45,7 @@
         
         function initGameMusic() {
             if (!gameMusic) {
-                gameMusic = new Audio('/viacheslavstarostin-game-gaming-video-game-music-471936.mp3');
+                gameMusic = new Audio('viacheslavstarostin-game-gaming-video-game-music-471936.mp3');
                 gameMusic.loop = true;
                 gameMusic.volume = 0.3;
             }
@@ -196,7 +196,7 @@
                         scene.textures.addImage('secondLogo', img2);
                         scene.add.image(540, 500, 'secondLogo').setScale(1.8).setOrigin(0.5);
                     };
-                    img2.src = '/11eac3e7-5344-42a9-ad0d-33d20369f480.png';
+                    img2.src = '11eac3e7-5344-42a9-ad0d-33d20369f480.png';
                 } else {
                     this.add.image(540, 500, 'secondLogo').setScale(1.8).setOrigin(0.5);
                 }
@@ -674,7 +674,7 @@
                             scene.textures.addImage('secondLogo', img2);
                             scene.add.image(540, 110, 'secondLogo').setScale(0.5).setOrigin(0.5).setDepth(10);
                         };
-                        img2.src = '/11eac3e7-5344-42a9-ad0d-33d20369f480.png';
+                        img2.src = '11eac3e7-5344-42a9-ad0d-33d20369f480.png';
                     } else {
                         this.add.image(540, 110, 'secondLogo').setScale(0.5).setOrigin(0.5).setDepth(10);
                     }
