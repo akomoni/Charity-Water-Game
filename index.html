@@ -642,11 +642,11 @@
 
                 // Main logo at bottom center
                 if (this.textures.exists('charityLogo')) {
-                    this.add.image(540, 1850, 'charityLogo').setScale(0.704).setOrigin(0.5);
+                    this.add.image(540, 1830, 'charityLogo').setScale(0.704).setOrigin(0.5);
                 } else {
                     const smallLogoSize = 70;
                     const smallLogoX = 540 - smallLogoSize / 2;
-                    const smallLogoY = 1805;
+                    const smallLogoY = 1785;
                     const gameLogoGraphics = this.make.graphics({ x: 0, y: 0, add: true }, false);
                     gameLogoGraphics.fillStyle(COLORS.YELLOW, 1);
                     gameLogoGraphics.fillRect(smallLogoX, smallLogoY, smallLogoSize, smallLogoSize);
